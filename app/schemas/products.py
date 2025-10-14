@@ -72,5 +72,7 @@ class ProductOut(ProductBase):
     tags: Optional[List[ProductTagOut]]
     images: Optional[List[ProductImageOut]]
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
+
