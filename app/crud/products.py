@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from app.models.products import Product, Category, ProductTag, ProductImage
 from app.schemas.products import ProductCreate, ProductUpdate
 
-# --- Create Product ---
 def create_product(db: Session, product_data: ProductCreate):
     db_product = Product(
         name=product_data.name,
@@ -15,13 +14,9 @@ def create_product(db: Session, product_data: ProductCreate):
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
-
-    # Attach tags
     if product_data.tag_ids:
         tags = db.query(ProductTag).filter(ProductTag.id.in_(product_data.tag_ids)).all()
         db_product.tags = tags
-
-    # Attach images
     if product_data.images:
         for img in product_data.images:
             db_image = ProductImage(image_url=img.image_url, is_primary=img.is_primary, product_id=db_product.id)

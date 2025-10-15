@@ -11,7 +11,6 @@ from app.core.database import get_db
 
 router = APIRouter()
 
-# --- Products Endpoints ---
 @router.post("/", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_new_product(product: ProductCreate, db: Session = Depends(get_db)):
     return crud.create_product(db, product)
@@ -41,8 +40,6 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return {"message": "Product deleted successfully"}
 
-
-# --- Category Endpoints ---
 @router.post("/categories", response_model=CategoryOut, status_code=status.HTTP_201_CREATED)
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     return crud.create_category(db, category.name, category.description)
@@ -51,8 +48,6 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
 def list_categories(db: Session = Depends(get_db)):
     return crud.get_all_categories(db)
 
-
-# --- Tag Endpoints ---
 @router.post("/tags", response_model=ProductTagOut, status_code=status.HTTP_201_CREATED)
 def create_tag(tag: ProductTagCreate, db: Session = Depends(get_db)):
     return crud.create_tag(db, tag.name)

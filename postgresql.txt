@@ -1,0 +1,338 @@
+CREATE TABLE roles (
+  role_id VARCHAR PRIMARY KEY,
+  role_name VARCHAR NOT NULL
+);
+
+CREATE INDEX idx_roles_role_name ON roles (role_name);
+
+
+CREATE TABLE permissions (
+  permission_id VARCHAR PRIMARY KEY,
+  resource VARCHAR NOT NULL,
+  "create" BOOLEAN NOT NULL,
+  "update" BOOLEAN NOT NULL,
+  "insert" BOOLEAN NOT NULL,
+  "delete" BOOLEAN NOT NULL
+);
+
+
+CREATE TABLE role_permissions (
+  role_permission_id VARCHAR PRIMARY KEY,
+  role_id VARCHAR NOT NULL REFERENCES roles(role_id),
+  permission_id VARCHAR NOT NULL REFERENCES permissions(permission_id)
+);
+
+CREATE INDEX idx_role_permissions_role_id ON role_permissions (role_id);
+CREATE INDEX idx_role_permissions_permission_id ON role_permissions (permission_id);
+
+
+CREATE TABLE users (
+  user_id VARCHAR PRIMARY KEY,
+  name VARCHAR NOT NULL,
+  email VARCHAR UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  profile_pic VARCHAR,
+  role_id VARCHAR NOT NULL REFERENCES roles(role_id),
+  points INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_email ON users (email);
+CREATE INDEX idx_users_role ON users (role_id);
+
+
+CREATE TABLE addresses (
+  address_id VARCHAR PRIMARY KEY,
+  user_id VARCHAR NOT NULL REFERENCES users(user_id),
+  full_name VARCHAR NOT NULL,
+  phone VARCHAR NOT NULL,
+  address TEXT NOT NULL,
+  city VARCHAR NOT NULL,
+  state VARCHAR NOT NULL,
+  zip VARCHAR NOT NULL,
+  country VARCHAR NOT NULL,
+  is_primary BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_addresses_user_id ON addresses (user_id);
+
+
+CREATE TABLE categories (
+  category_id VARCHAR PRIMARY KEY,
+  name VARCHAR NOT NULL
+);
+
+CREATE INDEX idx_categories_name ON categories (name);
+
+
+CREATE TABLE product_tags (
+  tag_id VARCHAR PRIMARY KEY,
+  name VARCHAR NOT NULL
+);
+
+CREATE INDEX idx_product_tags_name ON product_tags (name);
+
+
+CREATE TABLE products (
+  product_id VARCHAR PRIMARY KEY,
+  name VARCHAR NOT NULL,
+  category_id VARCHAR NOT NULL REFERENCES categories(category_id),
+  price DOUBLE PRECISION NOT NULL,
+  stock INT NOT NULL,
+  hsn_code VARCHAR NOT NULL,
+  gst_percentage DOUBLE PRECISION NOT NULL,
+  is_trending BOOLEAN DEFAULT FALSE,
+  is_top_selling BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_products_category_id ON products (category_id);
+CREATE INDEX idx_products_is_trending ON products (is_trending);
+CREATE INDEX idx_products_is_top_selling ON products (is_top_selling);
+
+
+CREATE TABLE product_tags_map (
+  product_id VARCHAR NOT NULL REFERENCES products(product_id),
+  tag_id VARCHAR NOT NULL REFERENCES product_tags(tag_id),
+  PRIMARY KEY (product_id, tag_id)
+);
+
+CREATE INDEX idx_product_tags_map ON product_tags_map (product_id, tag_id);
+
+
+CREATE TABLE product_images (
+  image_id VARCHAR PRIMARY KEY,
+  product_id VARCHAR NOT NULL REFERENCES products(product_id),
+  url TEXT NOT NULL,
+  alt_text VARCHAR,
+  order_no INT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_product_images_product_id ON product_images (product_id);
+
+
+CREATE TABLE order_types (
+  type_id VARCHAR PRIMARY KEY,
+  type_name VARCHAR NOT NULL
+);
+
+CREATE INDEX idx_order_types_type_name ON order_types (type_name);
+
+
+CREATE TABLE order_status (
+  status_id VARCHAR PRIMARY KEY,
+  status_name VARCHAR NOT NULL
+);
+
+CREATE INDEX idx_order_status_status_name ON order_status (status_name);
+
+
+CREATE TABLE coupons (
+  coupon_id VARCHAR PRIMARY KEY,
+  code VARCHAR UNIQUE NOT NULL,
+  discount_type VARCHAR NOT NULL,
+  discount_value DOUBLE PRECISION NOT NULL,
+  min_order_value DOUBLE PRECISION NOT NULL,
+  max_discount DOUBLE PRECISION NOT NULL,
+  expiry_date TIMESTAMP NOT NULL,
+  usage_limit INT NOT NULL,
+  used_count INT DEFAULT 0,
+  per_user_limit INT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_coupons_code ON coupons (code);
+CREATE INDEX idx_coupons_is_active ON coupons (is_active);
+
+
+
+CREATE TABLE coupon_categories (
+  coupon_category_id VARCHAR PRIMARY KEY,
+  coupon_id VARCHAR NOT NULL REFERENCES coupons(coupon_id),
+  category_id VARCHAR NOT NULL REFERENCES categories(category_id)
+);
+
+CREATE INDEX idx_coupon_categories_coupon_id ON coupon_categories (coupon_id);
+CREATE INDEX idx_coupon_categories_category_id ON coupon_categories (category_id);
+
+CREATE TABLE orders (
+  order_id VARCHAR PRIMARY KEY,
+  user_id VARCHAR NOT NULL REFERENCES users(user_id),
+  type_id VARCHAR NOT NULL REFERENCES order_types(type_id),
+  status_id VARCHAR NOT NULL REFERENCES order_status(status_id),
+  shipping_address_id VARCHAR REFERENCES addresses(address_id),
+  coupon_id VARCHAR REFERENCES coupons(coupon_id),
+  sub_total DOUBLE PRECISION NOT NULL,
+  gst_total DOUBLE PRECISION NOT NULL,
+  total DOUBLE PRECISION NOT NULL,
+  discount DOUBLE PRECISION DEFAULT 0,
+  points_redeemed INT DEFAULT 0,
+  points_earned INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_orders_user_id ON orders (user_id);
+CREATE INDEX idx_orders_status_id ON orders (status_id);
+CREATE INDEX idx_orders_shipping_address_id ON orders (shipping_address_id);
+CREATE INDEX idx_orders_coupon_id ON orders (coupon_id);
+
+
+CREATE TABLE order_items (
+  order_item_id VARCHAR PRIMARY KEY,
+  order_id VARCHAR NOT NULL REFERENCES orders(order_id),
+  product_id VARCHAR NOT NULL REFERENCES products(product_id),
+  quantity INT NOT NULL CHECK (quantity > 0),
+  price DOUBLE PRECISION NOT NULL,
+  hsn_code VARCHAR NOT NULL,
+  gst_percentage DOUBLE PRECISION NOT NULL
+);
+
+CREATE INDEX idx_order_items_order_id ON order_items (order_id);
+CREATE INDEX idx_order_items_product_id ON order_items (product_id);
+
+
+CREATE TABLE cart (
+  cart_id VARCHAR PRIMARY KEY,
+  user_id VARCHAR NOT NULL REFERENCES users(user_id)
+);
+
+CREATE INDEX idx_cart_user_id ON cart (user_id);
+
+CREATE TABLE cart_items (
+  cart_item_id VARCHAR PRIMARY KEY,
+  cart_id VARCHAR NOT NULL REFERENCES cart(cart_id),
+  product_id VARCHAR NOT NULL REFERENCES products(product_id),
+  quantity INT NOT NULL CHECK (quantity > 0)
+);
+
+CREATE INDEX idx_cart_items_cart_id ON cart_items (cart_id);
+CREATE INDEX idx_cart_items_product_id ON cart_items (product_id);
+
+
+CREATE TABLE wishlist (
+  wish_id VARCHAR PRIMARY KEY,
+  user_id VARCHAR NOT NULL REFERENCES users(user_id)
+);
+
+CREATE INDEX idx_wishlist_user_id ON wishlist (user_id);
+
+
+CREATE TABLE wishlist_items (
+  wish_item_id VARCHAR PRIMARY KEY,
+  wish_id VARCHAR NOT NULL REFERENCES wishlist(wish_id),
+  product_id VARCHAR NOT NULL REFERENCES products(product_id)
+);
+
+CREATE INDEX idx_wishlist_items_wish_id ON wishlist_items (wish_id);
+CREATE INDEX idx_wishlist_items_product_id ON wishlist_items (product_id);
+
+
+CREATE TABLE payments (
+  payment_id VARCHAR PRIMARY KEY,
+  order_id VARCHAR UNIQUE NOT NULL REFERENCES orders(order_id),
+  payment_method VARCHAR NOT NULL,
+  payment_status VARCHAR NOT NULL,
+  transaction_id VARCHAR NOT NULL,
+  amount DOUBLE PRECISION NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_payments_order_id ON payments (order_id);
+
+
+CREATE TABLE feedbacks (
+  feedback_id VARCHAR PRIMARY KEY,
+  order_id VARCHAR NOT NULL REFERENCES orders(order_id),
+  user_id VARCHAR NOT NULL REFERENCES users(user_id),
+  overall_feedback TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_feedbacks_order_id ON feedbacks (order_id);
+CREATE INDEX idx_feedbacks_user_id ON feedbacks (user_id);
+
+
+CREATE TABLE feedback_products (
+  feedback_product_id VARCHAR PRIMARY KEY,
+  feedback_id VARCHAR NOT NULL REFERENCES feedbacks(feedback_id),
+  product_id VARCHAR NOT NULL REFERENCES products(product_id),
+  rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5)
+);
+
+CREATE INDEX idx_feedback_products_feedback_id ON feedback_products (feedback_id);
+CREATE INDEX idx_feedback_products_product_id ON feedback_products (product_id);
+
+
+CREATE TABLE discounts (
+  discount_id VARCHAR PRIMARY KEY,
+  type VARCHAR NOT NULL,
+  discount_type VARCHAR NOT NULL,
+  discount_value DOUBLE PRECISION NOT NULL,
+  product_id VARCHAR REFERENCES products(product_id),
+  start_date TIMESTAMP NOT NULL,
+  end_date TIMESTAMP NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_discounts_product_id ON discounts (product_id);
+CREATE INDEX idx_discounts_is_active ON discounts (is_active);
+
+
+CREATE TABLE loyalty_configs (
+  config_id VARCHAR PRIMARY KEY,
+  redeem_rate DOUBLE PRECISION NOT NULL,
+  max_redeem_percent INT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_loyalty_configs_created_at ON loyalty_configs (created_at);
+
+
+CREATE TABLE loyalty_earn_rules (
+  earn_rule_id VARCHAR PRIMARY KEY,
+  earn_rate DOUBLE PRECISION NOT NULL,
+  earn_per_value DOUBLE PRECISION NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_loyalty_earn_rules_created_at ON loyalty_earn_rules (created_at);
+
+
+CREATE TABLE points_logs (
+  log_id VARCHAR PRIMARY KEY,
+  user_id VARCHAR NOT NULL REFERENCES users(user_id),
+  order_id VARCHAR REFERENCES orders(order_id),
+  points_earned INT DEFAULT 0,
+  points_redeemed INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_points_logs_user_id ON points_logs (user_id);
+CREATE INDEX idx_points_logs_order_id ON points_logs (order_id);
+
+
+CREATE TABLE loyalty_usage (
+  usage_id UUID PRIMARY KEY,
+  order_id VARCHAR(50) NOT NULL,
+  earn_point_id TEXT
+);
+
+CREATE INDEX idx_loaylty_usage_usage_id ON loyalty_usage (usage_id);
+
+CREATE TABLE sessions (
+  session_id VARCHAR PRIMARY KEY,
+  user_id VARCHAR NOT NULL REFERENCES users(user_id),
+  refresh_token TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_sessions_user_id ON sessions (user_id);
+CREATE INDEX idx_sessions_expires_at ON sessions (expires_at);
